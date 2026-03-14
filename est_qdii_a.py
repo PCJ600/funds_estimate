@@ -3,6 +3,9 @@ import pandas as pd
 from datetime import datetime, time
 import time
 
+# --------------------- 配置项 - 持仓基金代码 ---------------------
+HOLD_FUND_CODES = ["501301", "501302", "501305", "501306", "501307", "501310"]
+
 # --------------------- 对齐 ---------------------
 def str_width(s):
     return sum(2 if '\u4e00' <= c <= '\u9fff' else 1 for c in str(s))
@@ -12,6 +15,21 @@ def pad_text(s, width):
     w = str_width(s)
     pad = max(0, width - w)
     return s + ' ' * pad
+
+# --------------------- 样式处理（仅加粗高亮，无文字标记） ---------------------
+def style_hold_text(text, is_hold):
+    """
+    仅为持仓基金添加：黄色 + 加粗
+    无任何额外文字标记
+    """
+    if not is_hold:
+        return text
+    
+    # ANSI：黄色加粗
+    ANSI_YELLOW_BOLD = "\033[1;33m"
+    ANSI_RESET = "\033[0m"
+    
+    return f"{ANSI_YELLOW_BOLD}{text}{ANSI_RESET}"
 
 # --------------------- 港股交易日 + 交易时间判断 ---------------------
 def is_hk_trading_hours():
@@ -30,7 +48,7 @@ def is_hk_trading_hours():
 
 # --------------------- 数据获取 ---------------------
 def fetch_lof_data():
-    url = "https://www.jisilu.cn/data/qdii/qdii_list/A?___jsl=LST___t=1773454444970&only_lof=y&rp=22" # only_lof=y, 只算lof数据
+    url = "https://www.jisilu.cn/data/qdii/qdii_list/A?___jsl=LST___t=1773454444970&only_lof=y&rp=22"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -61,13 +79,11 @@ def calculate_premium_discount(data_rows):
             redeem_status = cell['redeem_status']
             redeem_fee = cell['redeem_fee']
 
-            # 交易时间使用实时指数涨跌幅算估值; 对于非交易时间, 在当晚净值公布后, 指数涨跌幅就无效了, 所以设置为0, 方便净值公布后计算折溢价
             if trading:
                 ref_increase_rt = float(cell['ref_increase_rt'].replace('%', '')) / 100
             else:
                 ref_increase_rt = 0
 
-            # 计算实时估值和实时溢价率
             real_val = fund_nav * (1 + ref_increase_rt * asset_ratio)
             premium = (price - real_val) / real_val * 100
 
@@ -100,22 +116,25 @@ def main():
     headers = ["基金代码", "基金名称", "股票比率", "现价", "T-1净值", "净值日期", "指数涨幅", "实时估值", "折溢价率", "申购", "赎回", "赎回费"]
 
     print(''.join([pad_text(h, col_w[i]) for i, h in enumerate(headers)]))
-    print('-' * 165)
+    print('-' * 170)
 
     for item in data:
+        fund_code = item[0]
+        is_hold = fund_code in HOLD_FUND_CODES
+        
         line = ''
-        line += pad_text(item[0], col_w[0])
-        line += pad_text(item[1], col_w[1])
-        line += pad_text(f"{item[2]:.2f}%", col_w[2])
-        line += pad_text(f"{item[3]:.3f}", col_w[3])
-        line += pad_text(f"{item[4]:.4f}", col_w[4])
-        line += pad_text(item[5], col_w[5])
-        line += pad_text(f"{item[6]:.2f}%", col_w[6])
-        line += pad_text(f"{item[7]:.3f}", col_w[7])
-        line += pad_text(f"{item[8]:.2f}%", col_w[8])
-        line += pad_text(item[9], col_w[9])
-        line += pad_text(item[10], col_w[10])
-        line += pad_text(item[11], col_w[11])
+        line += style_hold_text(pad_text(item[0], col_w[0]), is_hold)
+        line += style_hold_text(pad_text(item[1], col_w[1]), is_hold)
+        line += style_hold_text(pad_text(f"{item[2]:.2f}%", col_w[2]), is_hold)
+        line += style_hold_text(pad_text(f"{item[3]:.3f}", col_w[3]), is_hold)
+        line += style_hold_text(pad_text(f"{item[4]:.4f}", col_w[4]), is_hold)
+        line += style_hold_text(pad_text(item[5], col_w[5]), is_hold)
+        line += style_hold_text(pad_text(f"{item[6]:.2f}%", col_w[6]), is_hold)
+        line += style_hold_text(pad_text(f"{item[7]:.3f}", col_w[7]), is_hold)
+        line += style_hold_text(pad_text(f"{item[8]:.2f}%", col_w[8]), is_hold)
+        line += style_hold_text(pad_text(item[9], col_w[9]), is_hold)
+        line += style_hold_text(pad_text(item[10], col_w[10]), is_hold)
+        line += style_hold_text(pad_text(item[11], col_w[11]), is_hold)
         print(line)
 
 if __name__ == "__main__":
