@@ -1,6 +1,6 @@
 import requests
 import pandas as pd
-from datetime import datetime, time
+from datetime import datetime, time as dt_time  # 核心修改：给datetime.time起别名
 import time
 
 # --------------------- 配置项 - 持仓基金代码 ---------------------
@@ -40,10 +40,10 @@ def is_hk_trading_hours():
     if weekday >= 5:
         return False
 
-    # 交易时间
+    # 交易时间：使用别名dt_time
     current_time = now.time()
-    morning = time(9, 30) <= current_time <= time(12, 0)
-    afternoon = time(13, 00) <= current_time <= time(16, 00)
+    morning = dt_time(9, 30) <= current_time <= dt_time(12, 0)
+    afternoon = dt_time(13, 00) <= current_time <= dt_time(16, 00)
     return morning or afternoon
 
 # --------------------- 数据获取 ---------------------
